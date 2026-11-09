@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a6cb8">
+<title>小 yaw 控制器推导</title>
+<style>
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0 auto;padding:20px 16px 72px;max-width:780px;
+  font:16.5px/1.85 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:#1c1c1e;background:#fff;-webkit-font-smoothing:antialiased;
+  word-wrap:break-word;overflow-wrap:break-word;
+}
+h1{font-size:1.45em;line-height:1.35;margin:.1em 0 .2em;letter-spacing:-.01em}
+h2{font-size:1.18em;margin:2.1em 0 .6em;padding-bottom:.3em;border-bottom:2px solid #e8eef4;color:#0a6cb8}
+h3{font-size:1.05em;margin:1.6em 0 .5em;color:#0d4a75}
+p{margin:.75em 0}
+.sub{color:#7a7a80;font-size:.9em;margin:0 0 1.6em}
+hr{border:0;border-top:1px solid #e6e6ea;margin:2.4em 0}
+
+/* 公式 */
+.eq{
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.35em;
+  margin:16px 0;padding:14px 12px;background:#f4f8fc;border-left:3px solid #0a6cb8;
+  border-radius:0 8px 8px 0;font-family:"Cambria Math",Cambria,Georgia,"Times New Roman",serif;
+  font-size:17.5px;line-height:1.9;overflow-x:auto;
+}
+.eq.box{background:#fff8ec;border-left-color:#d98500}
+.eq.key{background:#eefaf0;border-left-color:#1a9e4b;font-weight:600}
+.eq i,.eqm i{font-style:italic}
+.eq .tag{font-size:.72em;color:#8a8a90;font-family:inherit;font-weight:400}
+
+/* 分式 */
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;
+      text-align:center;font-size:.88em;line-height:1.12;margin:0 .12em}
+.frac>.num{border-bottom:1.2px solid currentColor;padding:0 .3em}
+.frac>.den{padding:0 .3em}
+sup,sub{font-size:.72em;line-height:0}
+.sq{display:inline-block;text-align:center;font-size:.88em;line-height:1.1}
+.sq::before{content:"√";font-size:1.15em}
+
+/* 行内公式 */
+.f{font-family:"Cambria Math",Cambria,Georgia,serif;font-size:1.03em;white-space:nowrap;
+   background:#f2f5f8;padding:1px 5px;border-radius:4px}
+
+/* 代码 */
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+     font-size:.86em;background:#f3f3f6;padding:1px 5px;border-radius:4px;color:#b3306b}
+pre{background:#f7f7fa;border:1px solid #e6e6ea;border-radius:8px;padding:12px;
+    overflow-x:auto;font-size:13px;line-height:1.65}
+pre code{background:none;padding:0;color:#1c1c1e}
+
+/* 表格 */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:.88em;min-width:420px}
+th,td{border:1px solid #e2e6ea;padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#f2f6fa;font-weight:600;white-space:nowrap}
+td.c{text-align:center}
+
+/* 提示块 */
+.note{background:#f4f8fc;border-left:3px solid #0a6cb8;padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0}
+.warn{background:#fff6f6;border-left:3px solid #d93b3b;padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0}
+.ok{background:#f2fbf4;border-left:3px solid #1a9e4b;padding:10px 14px;border-radius:0 8px 8px 0;margin:14px 0}
+.note,.warn,.ok{font-size:.94em}
+
+/* 目录 */
+.toc{background:#f7f9fb;border:1px solid #e6ecef;border-radius:10px;padding:12px 16px;margin:20px 0}
+.toc ol{margin:.4em 0;padding-left:1.3em}
+.toc li{margin:.28em 0;font-size:.94em}
+.toc a{color:#0a6cb8;text-decoration:none}
+
+a{color:#0a6cb8}
+ul,ol{padding-left:1.35em}
+li{margin:.32em 0}
+strong{color:#0d4a75}
+.hl{background:linear-gradient(transparent 62%,#ffe89a 62%);padding:0 1px}
+
+@media (prefers-color-scheme:dark){
+  body{background:#131316;color:#e4e4e8}
+  h2{color:#5eb0ee;border-bottom-color:#2a2a30}
+  h3{color:#7cc0f5}
+  .sub{color:#93939a}
+  hr{border-top-color:#2a2a30}
+  .eq{background:#1b1f26;border-left-color:#3f8fd0}
+  .eq.box{background:#2a2318;border-left-color:#d98500}
+  .eq.key{background:#16241a;border-left-color:#3fbf6a}
+  .f{background:#23232a}
+  code{background:#23232a;color:#ff8ab8}
+  pre{background:#1a1a1f;border-color:#2a2a30}
+  pre code{color:#e4e4e8}
+  th,td{border-color:#2a2a30}
+  th{background:#1d2228}
+  .note{background:#181d24}
+  .warn{background:#241a1a}
+  .ok{background:#16241a}
+  .toc{background:#181c21;border-color:#2a2a30}
+  .toc a,a{color:#5eb0ee}
+  strong{color:#7cc0f5}
+  .hl{background:linear-gradient(transparent 62%,#5a4a12 62%)}
+}
+</style>
+</head>
+<body>
+
+<h1>小 yaw 控制器推导<br><span style="font-size:.62em;font-weight:400;color:#7a7a80">状态反馈 + ESO（自抗扰）</span></h1>
+<p class="sub">对应代码 <code>Task/by_with_sy.c</code> 的 <code>axis_ctrl_init()</code> / <code>axis_ctrl_step()</code><br>对应宏 <code>GIMBAL_6020_B0 / WC / ZETA / ESO_WO / ESO_GAIN …</code></p>
+
+<div class="note">本文用 <span class="f">dx/dt</span> 表示 x 对时间求导（不用点记号，手机上看得更清楚）。</div>
+
+<nav class="toc">
+<strong>目录</strong>
+<ol>
+<li><a href="#s0">符号表</a></li>
+<li><a href="#s1">建模：从牛顿方程到 ω̇ = b₀u + d</a></li>
+<li><a href="#s2">ESO：把扰动估出来</a></li>
+<li><a href="#s3">控制律：抵消扰动 + 指定闭环形状</a></li>
+<li><a href="#s4">为什么还需要积分项</a></li>
+<li><a href="#s5">速度前馈 ω_ref：为什么必须有</a></li>
+<li><a href="#s6">b₀：唯一需要标定的量</a></li>
+<li><a href="#s7">符号约定（最危险的地方）</a></li>
+<li><a href="#s8">稳定性总览</a></li>
+<li><a href="#s9">代码 ↔ 公式 完全对照</a></li>
+<li><a href="#s10">一句话总结</a></li>
+</ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="s0">0 &nbsp;符号表</h2>
+
+<div class="tw">
+<table>
+<tr><th>符号</th><th>含义</th><th>单位</th></tr>
+<tr><td class="c"><i>θ<sub>s</sub></i></td><td>小 yaw <b>相对</b>角（编码器测）</td><td>rad</td></tr>
+<tr><td class="c"><i>ω<sub>s</sub></i></td><td>小 yaw <b>相对</b>角速度</td><td>rad/s</td></tr>
+<tr><td class="c"><i>θ<sub>b</sub></i>, <i>ω<sub>b</sub></i></td><td>大 yaw（达妙）绝对角 / 角速度</td><td>rad, rad/s</td></tr>
+<tr><td class="c"><i>ω<sub>p</sub></i></td><td>载荷（顶板 + IMU）绝对角速度</td><td>rad/s</td></tr>
+<tr><td class="c"><i>u</i></td><td><b>逻辑</b>输出（控制器算出来的那个数）</td><td>counts</td></tr>
+<tr><td class="c"><i>b</i><sub>0</sub></td><td>输入增益：u 每加 1 能产生多少角加速度</td><td>(rad/s²)/count</td></tr>
+<tr><td class="c"><i>d</i></td><td>总扰动（一切模型里没写的力）</td><td>rad/s²</td></tr>
+<tr><td class="c"><i>J<sub>p</sub></i></td><td>载荷绕竖直轴的转动惯量</td><td>kg·m²</td></tr>
+<tr><td class="c"><i>k<sub>t</sub></i></td><td>电机转矩常数</td><td>N·m/A</td></tr>
+<tr><td class="c"><i>ω<sub>c</sub></i>, <i>ζ</i></td><td>目标闭环带宽 / 阻尼比</td><td>rad/s, —</td></tr>
+<tr><td class="c"><i>ω<sub>o</sub></i></td><td>ESO 观测器带宽</td><td>rad/s</td></tr>
+<tr><td class="c"><i>z</i><sub>1</sub>, <i>z</i><sub>2</sub></td><td>ESO 状态：角速度估计 / 总扰动估计</td><td>rad/s, rad/s²</td></tr>
+<tr><td class="c"><i>β</i><sub>1</sub>, <i>β</i><sub>2</sub></td><td>观测器增益</td><td>—</td></tr>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s1">1 &nbsp;建模：从牛顿方程到 ω̇ = b₀u + d</h2>
+
+<h3>1.1 机械结构</h3>
+<pre><code>底盘
+ └─ 达妙 DM4310        ← 大 yaw，转轴竖直
+     └─ roll 电机（锁死不用）
+         └─ 大疆 GM6020 ← 小 yaw，转轴竖直
+             └─ 顶板 + C 板（含 IMU）</code></pre>
+
+<p><b>两个 yaw 轴都竖直且平行</b>，所以角度可以直接相加：</p>
+<div class="eq box">
+<i>θ<sub>p</sub></i> = <i>θ<sub>b</sub></i> + <i>θ<sub>s</sub></i> &nbsp;&nbsp;⟹&nbsp;&nbsp; <i>ω<sub>p</sub></i> = <i>ω<sub>b</sub></i> + <i>ω<sub>s</sub></i> <span class="tag">(1.1)</span>
+</div>
+
+<h3>1.2 载荷的转动方程</h3>
+<p>对载荷（顶板）绕竖直轴列牛顿第二定律，作用在它上面的力矩有三项：</p>
+<ul>
+<li>小 yaw 电机的驱动力矩 <span class="f"><i>τ<sub>m</sub></i> = <i>k<sub>t</sub> i</i></span>（<i>i</i> 是电流，单位 A）</li>
+<li>轴承的粘滞摩擦 <span class="f">−<i>B<sub>s</sub> ω<sub>s</sub></i></span></li>
+<li>轴承的库仑（干）摩擦 <span class="f">−<i>τ<sub>f</sub></i> · sgn(<i>ω<sub>s</sub></i>)</span></li>
+</ul>
+
+<div class="eq">
+<i>J<sub>p</sub></i> <span class="frac"><span class="num">d<i>ω<sub>p</sub></i></span><span class="den">d<i>t</i></span></span>
+= <i>k<sub>t</sub> i</i> − <i>B<sub>s</sub> ω<sub>s</sub></i> − <i>τ<sub>f</sub></i> sgn(<i>ω<sub>s</sub></i>) <span class="tag">(1.2)</span>
+</div>
+
+<div class="note">摩擦项写的是 <i>ω<sub>s</sub></i> 而不是 <i>ω<sub>p</sub></i> —— 因为轴承夹在小 yaw 转子和它底座（大 yaw）之间，摩擦取决于<b>相对</b>运动。</div>
+
+<h3>1.3 电流 → counts</h3>
+<p>控制帧 <code>0x1FE</code> 里 ±16384 对应 ±3 A，所以</p>
+<div class="eq">
+<i>i</i> = <span class="frac"><span class="num">3</span><span class="den">16384</span></span> <i>u</i> &nbsp;&nbsp;[A]
+</div>
+
+<p>代回 (1.2)，两边除以 <i>J<sub>p</sub></i>：</p>
+<div class="eq">
+<span class="frac"><span class="num">d<i>ω<sub>p</sub></i></span><span class="den">d<i>t</i></span></span>
+= <span style="border-bottom:1.6px solid #0a6cb8;padding-bottom:1px">
+  <span class="frac"><span class="num"><i>k<sub>t</sub></i></span><span class="den"><i>J<sub>p</sub></i></span></span> ·
+  <span class="frac"><span class="num">3</span><span class="den">16384</span></span></span> <i>u</i>
+&nbsp;−&nbsp;
+<span class="frac"><span class="num"><i>B<sub>s</sub></i></span><span class="den"><i>J<sub>p</sub></i></span></span> <i>ω<sub>s</sub></i>
+&nbsp;−&nbsp;
+<span class="frac"><span class="num"><i>τ<sub>f</sub></i></span><span class="den"><i>J<sub>p</sub></i></span></span> sgn(<i>ω<sub>s</sub></i>)
+<span class="tag">(1.3)</span>
+</div>
+
+<div class="eq key">
+<i>b</i><sub>0</sub> &nbsp;≡&nbsp;
+<span class="frac"><span class="num"><i>k<sub>t</sub></i></span><span class="den"><i>J<sub>p</sub></i></span></span>
+· <span class="frac"><span class="num">3</span><span class="den">16384</span></span>
+&nbsp;&nbsp;<span class="tag">(1.4)</span>
+</div>
+
+<p><b>b₀ 是整套算法里唯一需要"知道电机多大多重"的数。</b></p>
+
+<h3>1.4 换到相对坐标系 —— ★ 解耦的关键一步</h3>
+<p>用 (1.1) 把 d<i>ω<sub>p</sub></i>/d<i>t</i> 换成 d<i>ω<sub>s</sub></i>/d<i>t</i> + d<i>ω<sub>b</sub></i>/d<i>t</i>：</p>
+
+<div class="eq">
+<span class="frac"><span class="num">d<i>ω<sub>s</sub></i></span><span class="den">d<i>t</i></span></span> +
+<span class="frac"><span class="num">d<i>ω<sub>b</sub></i></span><span class="den">d<i>t</i></span></span>
+= <i>b</i><sub>0</sub><i>u</i> −
+<span class="frac"><span class="num"><i>B<sub>s</sub></i></span><span class="den"><i>J<sub>p</sub></i></span></span><i>ω<sub>s</sub></i> −
+<span class="frac"><span class="num"><i>τ<sub>f</sub></i></span><span class="den"><i>J<sub>p</sub></i></span></span> sgn(<i>ω<sub>s</sub></i>)
+</div>
+
+<p>移项：</p>
+
+<div class="eq key">
+<span class="frac"><span class="num">d<i>ω<sub>s</sub></i></span><span class="den">d<i>t</i></span></span>
+= <i>b</i><sub>0</sub><i>u</i> +
+<span style="border-bottom:1.6px solid #1a9e4b;padding-bottom:1px">
+[ −<span class="frac"><span class="num"><i>B<sub>s</sub></i></span><span class="den"><i>J<sub>p</sub></i></span></span><i>ω<sub>s</sub></i>
+− <span class="frac"><span class="num"><i>τ<sub>f</sub></i></span><span class="den"><i>J<sub>p</sub></i></span></span> sgn(<i>ω<sub>s</sub></i>)
+− <span class="frac"><span class="num">d<i>ω<sub>b</sub></i></span><span class="den">d<i>t</i></span></span> ]</span>
+&nbsp;&nbsp;&nbsp;<span class="tag">(1.5)</span>
+</div>
+
+<p style="text-align:center">中括号里那一整块，就是 <b>d</b>。</p>
+
+<h3>1.5 这个式子的意义</h3>
+<ul>
+<li>状态量是 <b><i>ω<sub>s</sub></i>（相对角速度）</b>，不是绝对角速度。小 yaw 只对"自己相对大 yaw 转了多少"负责。</li>
+<li><b><i>d</i> 里面包含了 −d<i>ω<sub>b</sub></i>/d<i>t</i></b> —— 大 yaw 的角加速度给小 yaw 带来的拖拽力。<span class="hl">它和我们不知道的摩擦力被放进了同一个筐里。</span></li>
+<li><span class="hl">但负载质心偏出轴以后，大 yaw 的拖拽项和离心项都是<b>可测的已知项</b>，应该显式拆成 <i>a</i><sub>couple</sub>，见 1.7。</span></li>
+</ul>
+
+<div class="ok"><b>已知的 <i>a</i><sub>couple</sub> 用前馈直接抵消，ESO 只估 <i>d</i><sub>res</sub> —— 这才是加负载后的正确解耦方式，见 1.7。</b></div>
+
+<h3>1.6 为什么要把模型写成这个形状</h3>
+<p>(1.5) 的意思是：从 <i>u</i> 到 <i>ω<sub>s</sub></i> 是一个<b>一阶系统</b>；而位置 <i>θ<sub>s</sub></i> 是 <i>ω<sub>s</sub></i> 的积分，所以从 <i>u</i> 到 <i>θ<sub>s</sub></i> 是<b>二阶系统</b>。</p>
+
+<p>自抗扰（ADRC）的核心思想：</p>
+
+<div class="note">
+把一切不确定的东西（摩擦、大 yaw 拖拽、b₀ 估错的部分、负载变化……）<b>统统塞进 d</b>，用一个观测器实时估它，然后在控制量里减掉。减掉之后，剩下的就是一个干净的双积分器：
+<div class="eq" style="margin-bottom:0">d<i>ω<sub>s</sub></i>/d<i>t</i> = <i>u</i><sub>0</sub></div>
+</div>
+
+<p>一个双积分器怎么控制，是教科书问题 —— 这就是第 3 节。</p>
+
+<h3>1.7 负载质心偏出轴：把大 yaw 的力显式拆出来</h3>
+
+<p>加上负载后，质心不在小 yaw 轴上了。设：</p>
+<ul>
+<li><i>m</i>：负载质量</li>
+<li><i>r</i>：质心到小 yaw 轴的水平距离</li>
+<li><i>d</i>：大、小 yaw 轴间距</li>
+<li><i>α</i>：质心在小 yaw 坐标系里的固定方位角</li>
+<li><i>J</i><sub>0</sub>：小 yaw 转子 + 顶板绕自身轴的惯量</li>
+<li><i>J<sub>c</sub></i>：负载绕自身质心的竖直轴惯量</li>
+</ul>
+
+<p>小 yaw 侧的总惯量由平行轴定理得到：</p>
+<div class="eq key">
+<i>J<sub>s</sub></i> = <i>J</i><sub>0</sub> + <i>J<sub>c</sub></i> + <i>m r</i>²
+<span class="tag">(1.6)</span>
+</div>
+
+<p>质心位置（大 yaw 轴在原点）：</p>
+<div class="eq">
+<i>x<sub>C</sub></i> = <i>d</i> cos<i>φ<sub>b</sub></i> + <i>r</i> cos(<i>φ<sub>b</sub></i>+<i>θ<sub>s</sub></i>+<i>α</i>)<br>
+<i>y<sub>C</sub></i> = <i>d</i> sin<i>φ<sub>b</sub></i> + <i>r</i> sin(<i>φ<sub>b</sub></i>+<i>θ<sub>s</sub></i>+<i>α</i>)
+<span class="tag">(1.7)</span>
+</div>
+
+<p>求导得速度平方：</p>
+<div class="eq">
+<i>v<sub>C</sub></i>² = <i>d</i>²<i>φ̇<sub>b</sub></i>²
++ <i>r</i>²(<i>φ̇<sub>b</sub></i>+<i>θ̇<sub>s</sub></i>)²
++ 2<i>d r</i> <i>φ̇<sub>b</sub></i>(<i>φ̇<sub>b</sub></i>+<i>θ̇<sub>s</sub></i>) cos(<i>θ<sub>s</sub></i>+<i>α</i>)
+<span class="tag">(1.8)</span>
+</div>
+
+<p>只保留与 <i>θ<sub>s</sub></i> 有关的动能：</p>
+<div class="eq">
+<i>T</i> = ½<i>J<sub>s</sub></i>(<i>φ̇<sub>b</sub></i>+<i>θ̇<sub>s</sub></i>)²
++ <i>m d r</i> <i>φ̇<sub>b</sub></i>(<i>φ̇<sub>b</sub></i>+<i>θ̇<sub>s</sub></i>) cos(<i>θ<sub>s</sub></i>+<i>α</i>)
++ [与 <i>θ<sub>s</sub></i> 无关的项]
+<span class="tag">(1.9)</span>
+</div>
+
+<p>对 <i>θ<sub>s</sub></i> 列拉格朗日方程：</p>
+<div class="eq">
+∂<i>T</i>/∂<i>θ̇<sub>s</sub></i>
+= <i>J<sub>s</sub></i>(<i>φ̇<sub>b</sub></i>+<i>θ̇<sub>s</sub></i>)
++ <i>m d r</i> <i>φ̇<sub>b</sub></i> cos(<i>θ<sub>s</sub></i>+<i>α</i>)<br>
+d/d<i>t</i>(∂<i>T</i>/∂<i>θ̇<sub>s</sub></i>)
+= <i>J<sub>s</sub></i>(<i>φ̈<sub>b</sub></i>+<i>θ̈<sub>s</sub></i>)
++ <i>m d r</i>[<i>φ̈<sub>b</sub></i> cos(<i>θ<sub>s</sub></i>+<i>α</i>)
+− <i>φ̇<sub>b</sub>θ̇<sub>s</sub></i> sin(<i>θ<sub>s</sub></i>+<i>α</i>)]<br>
+∂<i>T</i>/∂<i>θ<sub>s</sub></i>
+= −<i>m d r</i> <i>φ̇<sub>b</sub></i>(<i>φ̇<sub>b</sub></i>+<i>θ̇<sub>s</sub></i>) sin(<i>θ<sub>s</sub></i>+<i>α</i>)
+<span class="tag">(1.10)</span>
+</div>
+
+<p>相减，正弦项合并：</p>
+<div class="eq key">
+<i>J<sub>s</sub></i>(<i>φ̈<sub>b</sub></i>+<i>θ̈<sub>s</sub></i>)
++ <i>m d r</i>[<i>φ̈<sub>b</sub></i> cos(<i>θ<sub>s</sub></i>+<i>α</i>)
++ <i>φ̇<sub>b</sub></i>² sin(<i>θ<sub>s</sub></i>+<i>α</i>)]
+= <i>τ<sub>s</sub></i>
+<span class="tag">(1.11)</span>
+</div>
+
+<p>移项、除以 <i>J<sub>s</sub></i>，并代入 <i>τ<sub>s</sub></i> = <i>k<sub>t</sub></i>(3/16384)<i>u</i> − <i>B<sub>s</sub>θ̇<sub>s</sub></i> − <i>τ<sub>f</sub></i> sgn(<i>θ̇<sub>s</sub></i>)：</p>
+
+<div class="eq key">
+<i>θ̈<sub>s</sub></i> = <i>b</i><sub>0</sub><i>u</i> + <i>a</i><sub>couple</sub> + <i>d</i><sub>res</sub>
+<span class="tag">(1.12)</span>
+</div>
+
+<div class="eq">
+<i>b</i><sub>0</sub> = <i>k<sub>t</sub></i>(3/16384)/<i>J<sub>s</sub></i><br><br>
+<i>a</i><sub>couple</sub> = −<i>φ̈<sub>b</sub></i>(1 + <i>k</i> cos(<i>θ<sub>s</sub></i>+<i>α</i>))
+− <i>k φ̇<sub>b</sub></i>² sin(<i>θ<sub>s</sub></i>+<i>α</i>)<br><br>
+<i>d</i><sub>res</sub> = −(<i>B<sub>s</sub></i>/<i>J<sub>s</sub></i>)<i>θ̇<sub>s</sub></i>
+− (<i>τ<sub>f</sub></i>/<i>J<sub>s</sub></i>) sgn(<i>θ̇<sub>s</sub></i>) + 未建模项<br><br>
+<i>k</i> = <i>m d r</i>/<i>J<sub>s</sub></i>
+</div>
+
+<div class="note">
+<b>关键变化：</b><i>a</i><sub>couple</sub> 由可测量 <i>φ̇<sub>b</sub></i>、<i>φ̈<sub>b</sub></i>、<i>θ<sub>s</sub></i> 直接算出，<b>不再交给 ESO</b>。ESO 只估 <i>d</i><sub>res</sub>。
+</div>
+
+<h4 style="margin:1.2em 0 .4em;color:#0d4a75">重力项</h4>
+<div class="eq">
+<i>V</i> = <i>m g z<sub>C</sub></i>, &nbsp; <i>z<sub>C</sub></i> = 常数
+&nbsp;⟹&nbsp; ∂<i>V</i>/∂<i>θ<sub>s</sub></i> = 0
+</div>
+<p>两轴都竖直，质心只在水平面内移动，高度不变；重力与转轴平行，绕轴力矩恒为 0。质心变化进入的是 <i>m r</i>² 和 <i>k</i>，不是重力项。</p>
+
+<h4 style="margin:1.2em 0 .4em;color:#0d4a75">前馈和观测器怎么改</h4>
+<div class="eq">
+<i>u</i><sub>ff</sub> = −<i>a</i><sub>couple</sub>/<i>b</i><sub>0</sub>
+= <i>φ̈<sub>b</sub></i>/<i>b</i><sub>0</sub>
++ <span class="frac"><span class="num"><i>m d r</i></span><span class="den"><i>k<sub>t</sub></i>·3/16384</span></span>
+[<i>φ̈<sub>b</sub></i> cos(<i>θ<sub>s</sub></i>+<i>α</i>)
++ <i>φ̇<sub>b</sub></i>² sin(<i>θ<sub>s</sub></i>+<i>α</i>)]
+<span class="tag">(1.13)</span>
+</div>
+
+<p>ESO 的模型输入只用反馈部分 <i>u</i><sub>fb</sub>，<b>不包含 <i>u</i><sub>ff</sub></b>：</p>
+<div class="eq">
+d<i>z</i><sub>1</sub>/d<i>t</i> = <i>z</i><sub>2</sub> + <i>b</i><sub>0</sub><i>u</i><sub>fb</sub> + β<sub>1</sub>(<i>y</i>−<i>z</i><sub>1</sub>)<br>
+d<i>z</i><sub>2</sub>/d<i>t</i> = β<sub>2</sub>(<i>y</i>−<i>z</i><sub>1</sub>)
+&nbsp;⟹&nbsp; <i>z</i><sub>2</sub> → <i>d</i><sub>res</sub>
+<span class="tag">(1.14)</span>
+</div>
+
+<div class="note">
+如果 ESO 看到的是 <i>u</i><sub>fb</sub>+<i>u</i><sub>ff</sub>，<i>z</i><sub>2</sub> 会估到 <i>a</i><sub>couple</sub>+<i>d</i><sub>res</sub>，控制律再减一次 <i>z</i><sub>2</sub>/<i>b</i><sub>0</sub>，就变成双重补偿。所以代码里 <code>out_last</code> 只记反馈部分。
+</div>
+
+<p>第 2、3 节的其他公式不变，只是把 <i>u</i> 理解成 <i>u</i><sub>fb</sub>，把 <i>d</i> 理解成 <i>d</i><sub>res</sub>。</p>
+
+<h4 style="margin:1.2em 0 .4em;color:#0d4a75">数值量级</h4>
+<div class="eq">
+<i>k<sub>t</sub></i>·3/16384 = 1.355×10<sup>−4</sup> N·m/count<br>
+<i>J</i><sub>0</sub> = 1.355×10<sup>−4</sup>/0.14 ≈ 9.7×10<sup>−4</sup> kg·m²<br>
+<i>m r</i>² ≈ 0.6×0.125² ≈ 9.4×10<sup>−3</sup> kg·m²<br>
+<i>J<sub>s</sub></i> ≈ 1.0×10<sup>−2</sup> kg·m²，<i>b</i><sub>0</sub> ≈ 0.013<br>
+<i>k</i> = <i>m d r</i>/<i>J<sub>s</sub></i> ≈ 0.66
+</div>
+
+<table>
+<tr><th>工况</th><th><i>a</i><sub>couple</sub> 量级</th><th>换算电流</th></tr>
+<tr><td>大 yaw 4 rad/s 匀速</td><td>≈ 11 rad/s²</td><td>≈ 850 counts</td></tr>
+<tr><td>大 yaw 11 rad/s 匀速</td><td>≈ 80 rad/s²</td><td>≈ 6200 counts</td></tr>
+<tr><td>大 yaw 10 rad/s² 加速</td><td>≈ 17 rad/s²</td><td>≈ 1300 counts</td></tr>
+<tr><td>大 yaw 100 rad/s² 加速</td><td>≈ 166 rad/s²</td><td>≈ 12800 counts</td></tr>
+</table>
+
+<div class="note">
+<b>方向与相位：</b><i>α</i> 随编码器零位变化，先填 0；如果前馈让误差变大，把 <code>g6020.ctrl.ff_sign</code>（或宏 <code>GIMBAL_6020_FF_SIGN</code>）改成 −1，再单独辨识 <i>α</i>。第一次测试请把大 yaw 转速压到 1–2 rad/s。前馈开关和几何参数在 Watch 里都能直接改：<code>ff_enable</code>、<code>load_mass</code>、<code>load_r</code>、<code>axis_d</code>、<code>load_alpha</code>。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s2">2 &nbsp;ESO：把扰动估出来</h2>
+
+<h3>2.1 把 d 当成一个新的状态</h3>
+<p>设 d<i>d</i>/d<i>t</i> ≈ 0（扰动变化比观测器慢就行）。构造<b>增广状态</b> <i>x</i><sub>1</sub> = <i>ω<sub>s</sub></i>，<i>x</i><sub>2</sub> = <i>d</i>：</p>
+
+<div class="eq">
+d<i>x</i><sub>1</sub>/d<i>t</i> = <i>x</i><sub>2</sub> + <i>b</i><sub>0</sub><i>u</i><br>
+d<i>x</i><sub>2</sub>/d<i>t</i> ≈ 0<br>
+<i>y</i> = <i>x</i><sub>1</sub> &nbsp;&nbsp;(可测：相对角速度) <span class="tag">(2.1)</span>
+</div>
+
+<p>这就是"扩张状态观测器"名字的由来：<b>把未知扰动"扩张"成一个状态</b>。</p>
+
+<h3>2.2 龙伯格（Luenberger）观测器</h3>
+<p>对 (2.1) 套标准观测器结构，增益 <i>β</i><sub>1</sub>, <i>β</i><sub>2</sub>：</p>
+
+<div class="eq">
+d<i>z</i><sub>1</sub>/d<i>t</i> = <i>z</i><sub>2</sub> + <i>b</i><sub>0</sub><i>u</i> + <i>β</i><sub>1</sub>(<i>y</i> − <i>z</i><sub>1</sub>)<br>
+d<i>z</i><sub>2</sub>/d<i>t</i> = <i>β</i><sub>2</sub>(<i>y</i> − <i>z</i><sub>1</sub>) <span class="tag">(2.2)</span>
+</div>
+
+<p>直觉：</p>
+<ul>
+<li><i>z</i><sub>1</sub> 用"模型预测 + 实测误差修正"来跟踪真实的 <i>ω<sub>s</sub></i></li>
+<li><i>z</i><sub>2</sub> 是<b>误差的积分</b>。只要 <i>z</i><sub>1</sub> ≠ <i>y</i>（模型和实测对不上），就说明有没建模的力，<i>z</i><sub>2</sub> 就朝那个方向长</li>
+</ul>
+
+<h3>2.3 定 β<sub>1</sub>, β<sub>2</sub>：双重极点配置</h3>
+<p>令误差 <i>e</i><sub>1</sub> = <i>x</i><sub>1</sub> − <i>z</i><sub>1</sub>，<i>e</i><sub>2</sub> = <i>x</i><sub>2</sub> − <i>z</i><sub>2</sub>。两式相减：</p>
+
+<div class="eq">
+d<i>e</i><sub>1</sub>/d<i>t</i> = <i>e</i><sub>2</sub> − <i>β</i><sub>1</sub><i>e</i><sub>1</sub> &nbsp;&nbsp;,&nbsp;&nbsp;
+d<i>e</i><sub>2</sub>/d<i>t</i> = −<i>β</i><sub>2</sub><i>e</i><sub>1</sub><br>
+⟹ &nbsp; d²<i>e</i><sub>1</sub>/d<i>t</i>² + <i>β</i><sub>1</sub> d<i>e</i><sub>1</sub>/d<i>t</i> + <i>β</i><sub>2</sub><i>e</i><sub>1</sub> = 0 <span class="tag">(2.3)</span>
+</div>
+
+<p><b>观测误差是一个标准二阶系统！</b>希望它又快又不振荡 → 取<b>双重极点</b> −<i>ω<sub>o</sub></i>：</p>
+
+<div class="eq">
+<i>s</i>² + <i>β</i><sub>1</sub><i>s</i> + <i>β</i><sub>2</sub> = (<i>s</i> + <i>ω<sub>o</sub></i>)² = <i>s</i>² + 2<i>ω<sub>o</sub> s</i> + <i>ω<sub>o</sub></i>²
+</div>
+
+<div class="eq key">
+<i>β</i><sub>1</sub> = 2<i>ω<sub>o</sub></i> &nbsp;,&nbsp;&nbsp; <i>β</i><sub>2</sub> = <i>ω<sub>o</sub></i>² <span class="tag">(2.4)</span>
+</div>
+
+<p>误差响应：</p>
+<div class="eq"><i>e</i><sub>1</sub>(<i>t</i>) = <i>e</i><sub>1</sub>(0)(1 + <i>ω<sub>o</sub> t</i>) <i>e</i><sup>−<i>ω<sub>o</sub> t</i></sup> <span class="tag">(2.5)</span></div>
+
+<p><b>只有一个参数 ω<sub>o</sub> 要选，它直接就是"多快估出扰动"。</b>代码里 <code>GIMBAL_6020_ESO_WO</code> 就是它。</p>
+
+<div class="note">这就是"带宽参数化"：不用分别调两个增益，直接说"我要观测器多快"。</div>
+
+<h3>2.4 离散化（代码里就是这么写的）</h3>
+<p>前向欧拉，<i>dt</i> = 1 ms：</p>
+
+<div class="eq">
+<i>z</i><sub>1</sub>[k+1] = <i>z</i><sub>1</sub>[k] + ( <i>z</i><sub>2</sub>[k] + <i>b</i><sub>0</sub><i>u</i>[k] − 2<i>ω<sub>o</sub></i>(<i>z</i><sub>1</sub>[k] − <i>y</i>[k]) ) <i>dt</i><br>
+<i>z</i><sub>2</sub>[k+1] = <i>z</i><sub>2</sub>[k] − <i>ω<sub>o</sub></i>²( <i>z</i><sub>1</sub>[k] − <i>y</i>[k] ) <i>dt</i> <span class="tag">(2.6)</span>
+</div>
+
+<p>代码里的 <code>err = z1 - yr</code> 就是 −(<i>y</i> − <i>z</i><sub>1</sub>)，所以写成：</p>
+
+<pre><code>float err = c-&gt;z1 - yr;
+float b1  = 2.0f * c-&gt;wor;
+float b2  = c-&gt;wor * c-&gt;wor;
+
+c-&gt;z1 += (c-&gt;z2 + c-&gt;b0 * c-&gt;u_last - b1 * err) * dt;
+c-&gt;z2 += (-b2 * err) * dt;</code></pre>
+
+<h3>2.5 离散稳定性（顺便算一下）</h3>
+
+<p>误差矩阵：</p>
+<div class="eq">
+<i>A<sub>c</sub></i> =
+[ <span class="frac"><span class="num">−2<i>ω<sub>o</sub></i> &nbsp; 1</span><span class="den">−<i>ω<sub>o</sub></i>² &nbsp; 0</span></span> ]
+&nbsp;&nbsp;⟹&nbsp;&nbsp;
+<i>A<sub>d</sub></i> = <i>I</i> + <i>A<sub>c</sub> dt</i> =
+[ <span class="frac"><span class="num">1−2<i>ω<sub>o</sub>dt</i> &nbsp; <i>dt</i></span><span class="den">−<i>ω<sub>o</sub></i>²<i>dt</i> &nbsp; 1</span></span> ]
+</div>
+
+<div class="eq">
+tr <i>A<sub>d</sub></i> = 2 − 2<i>ω<sub>o</sub> dt</i> &nbsp;,&nbsp;&nbsp;
+det <i>A<sub>d</sub></i> = (1 − <i>ω<sub>o</sub> dt</i>)²
+</div>
+
+<p>特征方程 <i>λ</i>² − (2−2<i>ω<sub>o</sub>dt</i>)<i>λ</i> + (1−<i>ω<sub>o</sub>dt</i>)² = 0，判别式恰为 0：</p>
+
+<div class="eq key">
+<i>λ</i> = 1 − <i>ω<sub>o</sub> dt</i> &nbsp;&nbsp;(双重) <span class="tag">(2.7)</span>
+</div>
+
+<p>稳定条件 |<i>λ</i>| &lt; 1 ⟹ 0 &lt; <i>ω<sub>o</sub>dt</i> &lt; 2。取 <i>dt</i> = 1 ms：<b><i>ω<sub>o</sub></i> &lt; 2000 rad/s</b>。</p>
+
+<div class="ok">非常宽松。代入 <i>ω<sub>o</sub></i> = 120：<i>λ</i> = 0.88 —— 稳，且恰好临界配置。</div>
+
+<!-- ============================================================ -->
+<h2 id="s3">3 &nbsp;控制律：抵消扰动 + 指定闭环形状</h2>
+
+<h3>3.1 第一步：把 d 减掉</h3>
+<p>由 (1.5)，若 <i>z</i><sub>2</sub> → <i>d</i>，则只要</p>
+
+<div class="eq">
+<i>u</i><sub>0</sub> ≡ <i>b</i><sub>0</sub><i>u</i> + <i>z</i><sub>2</sub>
+&nbsp;&nbsp;⟹&nbsp;&nbsp;
+<i>u</i> = <span class="frac"><span class="num"><i>u</i><sub>0</sub> − <i>z</i><sub>2</sub></span><span class="den"><i>b</i><sub>0</sub></span></span>
+<span class="tag">(3.1)</span>
+</div>
+
+<p>实际系统就变成 d<i>ω<sub>s</sub></i>/d<i>t</i> = <i>u</i><sub>0</sub>（纯积分器）。</p>
+
+<h3>3.2 第二步：让 u₀ 形成标准二阶闭环</h3>
+<p>被控量是位置 <i>θ<sub>s</sub></i>。令误差 <i>e</i> = <i>θ<sub>s</sub></i>* − <i>θ<sub>s</sub></i>。希望误差按标准二阶衰减：</p>
+
+<div class="eq">
+d²<i>e</i>/d<i>t</i>² + 2<i>ζω<sub>c</sub></i> d<i>e</i>/d<i>t</i> + <i>ω<sub>c</sub></i>²<i>e</i> = 0 <span class="tag">(3.2)</span>
+</div>
+
+<p>代入 d<i>e</i>/d<i>t</i> = −<i>ω<sub>s</sub></i>，d²<i>e</i>/d<i>t</i>² = −d<i>ω<sub>s</sub></i>/d<i>t</i> = −<i>u</i><sub>0</sub>：</p>
+
+<div class="eq">
+−<i>u</i><sub>0</sub> − 2<i>ζω<sub>c</sub> ω<sub>s</sub></i> + <i>ω<sub>c</sub></i>²<i>e</i> = 0
+</div>
+
+<div class="eq key">
+<i>u</i><sub>0</sub> = <i>ω<sub>c</sub></i>²<i>e</i> − 2<i>ζω<sub>c</sub> ω<sub>s</sub></i> <span class="tag">(3.3)</span>
+</div>
+
+<h3>3.3 得到增益</h3>
+<p>把 (3.3) 代回 (3.1)：</p>
+
+<div class="eq">
+<i>u</i> =
+<span class="frac"><span class="num"><i>ω<sub>c</sub></i>²</span><span class="den"><i>b</i><sub>0</sub></span></span> <i>e</i>
+&nbsp;−&nbsp;
+<span class="frac"><span class="num">2<i>ζω<sub>c</sub></i></span><span class="den"><i>b</i><sub>0</sub></span></span> <i>ω<sub>s</sub></i>
+&nbsp;−&nbsp;
+<span class="frac"><span class="num"><i>z</i><sub>2</sub></span><span class="den"><i>b</i><sub>0</sub></span></span>
+<span class="tag">(3.4)</span>
+</div>
+
+<div class="eq key">
+<i>k<sub>p</sub></i> =
+<span class="frac"><span class="num"><i>ω<sub>c</sub></i>²</span><span class="den"><i>b</i><sub>0</sub></span></span>
+&nbsp;,&nbsp;&nbsp;
+<i>k<sub>d</sub></i> =
+<span class="frac"><span class="num">2<i>ζω<sub>c</sub></i></span><span class="den"><i>b</i><sub>0</sub></span></span>
+<span class="tag">(3.5)</span>
+</div>
+
+<p><b>这就是代码里那两行的来历：</b></p>
+<pre><code>c-&gt;kp = c-&gt;wc * c-&gt;wc / c-&gt;b0;              /* ωc² / b0   */
+c-&gt;kd = 2.0f * c-&gt;zeta * c-&gt;wc / c-&gt;b0;     /* 2ζωc / b0  */</code></pre>
+
+<p><b>量纲校验：</b> [rad/s²] ÷ [(rad/s²)/count] = count/rad ✓ —— 所以 <i>k<sub>p</sub></i> 的单位是 counts/rad，"每偏 1 弧度出多少 counts 电流"。</p>
+
+<p>当前默认值（<i>ω<sub>c</sub></i>=14, <i>ζ</i>=0.6, <i>b</i><sub>0</sub>=0.00244）：</p>
+
+<div class="eq">
+<i>k<sub>p</sub></i> = <span class="frac"><span class="num">196</span><span class="den">0.00244</span></span> = 8.03×10⁴ &nbsp;
+<i>k<sub>d</sub></i> = <span class="frac"><span class="num">16.8</span><span class="den">0.00244</span></span> = 6.89×10³
+</div>
+
+<p><b>通读一遍 (3.4)：</b></p>
+
+<div class="tw">
+<table>
+<tr><th>项</th><th>名字</th><th>作用</th></tr>
+<tr><td class="c"><span class="frac"><span class="num"><i>ω<sub>c</sub></i>²</span><span class="den"><i>b</i><sub>0</sub></span></span><i>e</i></td><td>位置弹簧</td><td>差多少推多少</td></tr>
+<tr><td class="c">−<span class="frac"><span class="num">2<i>ζω<sub>c</sub></i></span><span class="den"><i>b</i><sub>0</sub></span></span><i>ω<sub>s</sub></i></td><td>阻尼器</td><td>转得越快越刹车</td></tr>
+<tr><td class="c">−<span class="frac"><span class="num"><i>z</i><sub>2</sub></span><span class="den"><i>b</i><sub>0</sub></span></span></td><td>扰动抵消</td><td>把摩擦和大 yaw 拖拽顶掉</td></tr>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s4">4 &nbsp;为什么还需要积分项</h2>
+
+<p>(3.4) 的抵消依赖 <i>z</i><sub>2</sub> → <i>d</i> 精确。但库里摩擦是个<b>不连续函数</b>（sgn），ESO 只能估个大概。代码里还留了 <code>eso_gain &lt; 1</code>（只抵消一部分），所以一定有残余。</p>
+
+<p>纯 PD 时，若残余扰动为 <i>d<sub>r</sub></i>，稳态下 d<i>ω<sub>s</sub></i>/d<i>t</i> = 0，由 (3.3) 得 <i>ω<sub>c</sub></i>²<i>e</i> = <i>d<sub>r</sub></i>：</p>
+
+<div class="eq">
+<i>e<sub>ss</sub></i> =
+<span class="frac"><span class="num"><i>d<sub>r</sub></i></span><span class="den"><i>ω<sub>c</sub></i>²</span></span>
+</div>
+
+<p><i>ω<sub>c</sub></i>² = 196 已经很大，所以即使 <i>d<sub>r</sub></i> = 1 rad/s²，<i>e<sub>ss</sub></i> = 0.005 rad = <b>0.3°</b>。</p>
+
+<div class="ok"><b>积分项只需要很小，它的唯一职责是啃掉那点残余静摩擦。</b>这就是 <code>ILIM</code> 只给 1000 counts（≈0.18 A）的原因。</div>
+
+<pre><code>c-&gt;integ += c-&gt;ki * e * dt;    /* 积分累加，单位 counts */
+/* 限幅 ±ilim */
+u = ... + c-&gt;integ - ...</code></pre>
+
+<!-- ============================================================ -->
+<h2 id="s5">5 &nbsp;速度前馈 ω<sub>ref</sub>：为什么必须有</h2>
+
+<h3>5.1 先看没有前馈会怎样</h3>
+<p>设摇杆要求一个<b>恒定</b>相对转速 <i>ω<sub>r</sub></i>（匀速转）。稳态时 d<i>ω<sub>s</sub></i>/d<i>t</i> = 0。由 (3.4)：</p>
+
+<div class="eq">
+0 = <i>ω<sub>c</sub></i>²<i>e</i> − 2<i>ζω<sub>c</sub> ω<sub>r</sub></i>
+&nbsp;&nbsp;⟹&nbsp;&nbsp;
+<i>e<sub>ss</sub></i> =
+<span class="frac"><span class="num">2<i>ζ</i></span><span class="den"><i>ω<sub>c</sub></i></span></span> <i>ω<sub>r</sub></i>
+<span class="tag">(5.1)</span>
+</div>
+
+<p>而消耗的电流是：</p>
+
+<div class="eq">
+<i>u</i> = <i>k<sub>p</sub></i> <i>e<sub>ss</sub></i>
+= <span class="frac"><span class="num"><i>ω<sub>c</sub></i>²</span><span class="den"><i>b</i><sub>0</sub></span></span> ·
+  <span class="frac"><span class="num">2<i>ζ</i></span><span class="den"><i>ω<sub>c</sub></i></span></span> <i>ω<sub>r</sub></i>
+= <span class="frac"><span class="num">2<i>ζω<sub>c</sub></i></span><span class="den"><i>b</i><sub>0</sub></span></span> <i>ω<sub>r</sub></i>
+= <i>k<sub>d</sub></i> <i>ω<sub>r</sub></i>
+<span class="tag">(5.2)</span>
+</div>
+
+<div class="warn">
+<b>即：维持一个转速 ω<sub>r</sub> 必须付出 k<sub>d</sub>ω<sub>r</sub> 的电流。</b>于是能维持的最大转速是
+<div class="eq" style="margin-bottom:0">
+<i>ω<sub>r</sub></i><sup>max</sup> =
+<span class="frac"><span class="num">CLIM</span><span class="den"><i>k<sub>d</sub></i></span></span>
+<span class="tag">(5.3)</span>
+</div>
+代入旧值（<i>k<sub>d</sub></i> = 1.48×10⁴，CLIM = 14000）：<b>只有 0.95 rad/s</b>，而摇杆满杆要 3.63 rad/s —— 差 3.8 倍，推到底也不动，<b>手感就是"没力"</b>。
+</div>
+
+<h3>5.2 加上前馈</h3>
+<p>把 (3.3) 改成</p>
+
+<div class="eq key">
+<i>u</i><sub>0</sub> = <i>ω<sub>c</sub></i>²<i>e</i> + 2<i>ζω<sub>c</sub></i>(<i>ω<sub>ref</sub></i> − <i>ω<sub>s</sub></i>) <span class="tag">(5.4)</span>
+</div>
+
+<p>即代码：</p>
+<pre><code>u = c-&gt;kp * e + c-&gt;kd * (c-&gt;wref_f - yr) + c-&gt;integ
+    - c-&gt;z2 / c-&gt;b0 * c-&gt;eso_gain;</code></pre>
+
+<p>稳态时 <i>ω<sub>s</sub></i> → <i>ω<sub>ref</sub></i>，那么 (<i>ω<sub>ref</sub></i> − <i>ω<sub>s</sub></i>) → 0，<b><i>k<sub>d</sub></i> 那一项自己归零</b>：</p>
+
+<div class="eq">
+<i>u<sub>ss</sub></i> = <i>k<sub>p</sub> e<sub>ss</sub></i>
+&nbsp;&nbsp;⟹&nbsp;&nbsp;
+<i>e<sub>ss</sub></i> =
+<span class="frac"><span class="num">摩擦力对应的电流</span><span class="den"><i>k<sub>p</sub></i></span></span>
+= <span class="frac"><span class="num">600</span><span class="den">8.0×10⁴</span></span>
+≈ 0.0075 rad = <b>0.43°</b>
+<span class="tag">(5.5)</span>
+</div>
+
+<div class="ok"><b>转速上限消失，只受电机力矩限制。</b></div>
+
+<h3>5.3 为什么前馈是 ω_ref 而不是别的</h3>
+
+<p>从物理上讲：<i>u</i> = <i>k<sub>p</sub>e</i> − <i>k<sub>d</sub>ω<sub>s</sub></i> 里，<i>k<sub>d</sub>ω<sub>s</sub></i> 是"阻力矩"。要匀速转就必须有驱动力矩顶掉它。<b>但匀速转本来不需要力矩</b>（惯性不需要 d<i>ω</i>/d<i>t</i>）。</p>
+
+<div class="note">
+<i>k<sub>d</sub>ω<sub>s</sub></i> 这项本来<b>只是人造的阻尼</b>，不是真实物理。只要把参考转速也乘上同一个 <i>k<sub>d</sub></i> 加回去，人造阻尼就"跟着参考走"，不再吃电流。
+<div class="eq" style="margin-bottom:.3em">数学本质：用同一增益抵消人造阻尼的偏置。</div>
+</div>
+
+<h3>5.4 代码里怎么算 ω_ref</h3>
+<p>摇杆积分式：每 1 ms 目标角增加 <code>ch·SEN</code>。所以</p>
+
+<div class="eq">
+<i>ω<sub>ref</sub></i>[k] =
+<span class="frac"><span class="num"><i>θ</i>*[k] − <i>θ</i>*[k−1]</span><span class="den"><i>dt</i></span></span>
+</div>
+
+<pre><code>float wref_raw = (ref - c-&gt;ref_prev) / dt;
+c-&gt;ref_prev = ref;
+/* 限幅 ±WREF_LIM，一阶低通 WREF_LP */</code></pre>
+
+<p><b>为什么必须限幅 + 低通：</b>目标是一节一节的阶梯（每 ms 跳一次），直接拿来乘 <i>k<sub>d</sub></i> ≈ 6900 会把台阶放大成电流脉冲。</p>
+
+<!-- ============================================================ -->
+<h2 id="s6">6 &nbsp;b₀：唯一需要标定的量</h2>
+
+<h3>6.1 理论值</h3>
+<p>由 (1.4)：<i>b</i><sub>0</sub> = (<i>k<sub>t</sub></i> / <i>J<sub>p</sub></i>) · (3 / 16384)。</p>
+<ul>
+<li>GM6020 的 <i>k<sub>t</sub></i> 约 0.74 N·m/A（按额定 1.2 N·m / 1.62 A 估）</li>
+<li><i>J<sub>p</sub></i> 未知（顶板 + C 板 + roll 电机的等效惯量）</li>
+</ul>
+
+<h3>6.2 估错了会怎样（好消息）</h3>
+<p>真实增益是 <i>b</i><sub>0</sub><sup>real</sup>，但增益按 <i>b</i><sub>0</sub><sup>asm</sup> 算。代入闭环：</p>
+
+<div class="eq">
+d<i>ω<sub>s</sub></i>/d<i>t</i> = <i>b</i><sub>0</sub><sup>real</sup> <i>u</i>
+= <i>b</i><sub>0</sub><sup>real</sup> ·
+  <span class="frac"><span class="num"><i>ω<sub>c</sub></i>²</span><span class="den"><i>b</i><sub>0</sub><sup>asm</sup></span></span> <i>e</i>
+</div>
+
+<p>对比标准二阶：</p>
+
+<div class="eq key">
+<i>ω<sub>n</sub></i> = <i>ω<sub>c</sub></i>
+<span class="sq"><span style="border-top:1.2px solid currentColor;padding:0 .2em">
+<span class="frac"><span class="num"><i>b</i><sub>0</sub><sup>real</sup></span><span class="den"><i>b</i><sub>0</sub><sup>asm</sup></span></span></span></span>
+&nbsp;,&nbsp;&nbsp;
+<i>ζ</i><sub>real</sub> = <i>ζ</i>
+<span class="sq"><span style="border-top:1.2px solid currentColor;padding:0 .2em">
+<span class="frac"><span class="num"><i>b</i><sub>0</sub><sup>real</sup></span><span class="den"><i>b</i><sub>0</sub><sup>asm</sup></span></span></span></span>
+</div>
+
+<div class="ok"><b>两个同比例缩放 ⟹ 阻尼比不变 ⟹ 闭环形状不变，只是快慢差一档。</b>
+<ul style="margin:.5em 0 0">
+<li><i>b</i><sub>0</sub> 估<b>小</b>了 → 实际更慢更软（安全）</li>
+<li><i>b</i><sub>0</sub> 估<b>大</b>了 → 实际更快更硬（可能振）</li>
+</ul>
+</div>
+
+<h3>6.3 怎么实测（加负载后必须重做）</h3>
+<p>代码里已经内置方波注入：<code>g6020.ctrl.test_sq_amp</code>。速度响应是三角波，斜率 = <i>b</i><sub>0</sub> × 方波幅值。</p>
+<ol>
+<li>拨到 MANUAL（中间），大 yaw 摇杆回中、保持静止。DISARM 会把电流置 0，方波不生效。</li>
+<li>Watch 里让控制器让开：<code>wc = 0</code>、<code>eso_bw = 0</code>、<code>eso_comp = 0</code>、<code>ki = 0</code>、<code>ref_slew = 0</code>。</li>
+<li>写 <code>test_sq_amp = 3000</code>、<code>test_sq_period = 200</code>、<code>test_sq_t = 0</code>。三角波有平顶就降到 1500；完全不动就加到 6000。</li>
+<li>读 <code>g6020.ctrl.rate_last</code>，取正、负半周各一段干净斜坡：<i>b</i><sub>0</sub> = Δ<i>ω<sub>s</sub></i> / (Δ<i>t</i> × 幅值)。两段平均，抵消摩擦不对称。</li>
+<li>测完恢复 <code>test_sq_amp = 0</code>、<code>test_sq_t = 0</code>，并把 <i>b</i><sub>0</sub> 写回 <code>GIMBAL_6020_B0</code>。</li>
+</ol>
+<div class="note">标定期间 <code>test_sq_amp ≠ 0</code> 会自动关闭耦合前馈，避免污染测量。加负载后预期 <i>b</i><sub>0</sub> ≈ 0.013（0.012–0.015）。</div>
+
+<!-- ============================================================ -->
+<h2 id="s7">7 &nbsp;符号约定（最危险的地方）</h2>
+
+<h3>7.1 三个符号</h3>
+<div class="note">当前固件 <code>GIMBAL_6020_OUT_TURN</code> 填的是 <b>+1.0</b>，与下表早期实测的 −1 不同。以当前代码和实物方向为准；耦合前馈的方向用 <code>GIMBAL_6020_FF_SIGN</code> 单独校正。</div>
+<div class="tw">
+<table>
+<tr><th>名字</th><th>含义</th><th>实测值</th></tr>
+<tr><td><i>e<sub>enc</sub></i></td><td><i>θ<sub>s</sub></i> 增大方向 与 <i>w<sub>z</sub></i> 正方向 的关系</td><td><b>+1</b>（angle 增大时 <code>INS_data.wz</code> &gt; 0）</td></tr>
+<tr><td>物理增益</td><td>物理电流 <i>t</i> 与 d<i>ω<sub>s</sub></i>/d<i>t</i> 的关系</td><td><b>负</b>（发 +8000 → angle 变小）</td></tr>
+<tr><td><code>OUT_TURN</code></td><td>逻辑 <i>u</i> → 物理电流 <i>t</i> 的乘数</td><td><b>−1</b></td></tr>
+</table>
+</div>
+
+<h3>7.2 为什么 k<sub>p</sub> 可以取正</h3>
+<p>定义<b>逻辑输出</b> <i>u</i>，物理电流 <i>t</i> = <i>u</i> · OUT_TURN。</p>
+<p>物理上 d<i>ω<sub>s</sub></i>/d<i>t</i> = −<i>b</i><sub>0</sub><sup>phys</sup> · <i>t</i>（负增益，实测）。代入：</p>
+
+<div class="eq">
+d<i>ω<sub>s</sub></i>/d<i>t</i> = −<i>b</i><sub>0</sub><sup>phys</sup> · (<i>u</i> · (−1)) = +<i>b</i><sub>0</sub><sup>phys</sup> <i>u</i>
+</div>
+
+<p><b>两次取反 ⟹ 在逻辑坐标系里 d<i>ω<sub>s</sub></i>/d<i>t</i> = +<i>b</i><sub>0</sub><i>u</i></b>，这就和 (1.5) 一致，所有公式才是干净的。</p>
+
+<div class="warn"><b>契约：OUT_TURN 必须取成"逻辑 u &gt; 0 ⟹ ω<sub>s</sub> 增大"。填反 = k<sub>p</sub> 变正反馈 + ESO 反向补偿，两处一起炸。</b></div>
+
+<h3>7.3 为什么 ESO 里存的是 u_last（未乘 OUT_TURN）</h3>
+<p>因为 ESO 的模型 (2.6) 里是 <i>b</i><sub>0</sub><i>u</i>，这个 <i>u</i> 是<b>逻辑系</b>的。所以：</p>
+<pre><code>c-&gt;u_last = u;              /* 逻辑值，给 ESO 用 */
+return u * out_turn;        /* 物理值，发给电机 */</code></pre>
+
+<h3>7.4 取反符号怎么标定</h3>
+<ol>
+<li>Watch 里 <code>g6020.ctrl.clim = 0</code>（电机不出力）</li>
+<li>手转大 yaw，比较 <code>dm_4310.vel</code> 和 <code>INS_data.wz</code> 的符号 → 决定 <code>GIMBAL_6020_BIG_TURN</code></li>
+<li>恒发一个小电流（绕开控制器），看 <code>g6020.angle</code> 往哪边变 → 决定 <code>OUT_TURN</code></li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="s8">8 &nbsp;稳定性总览</h2>
+
+<div class="tw">
+<table>
+<tr><th>回路</th><th>特征方程</th><th>稳定条件</th></tr>
+<tr><td>ESO 观测误差</td><td class="c">(<i>s</i> + <i>ω<sub>o</sub></i>)²</td><td class="c"><i>ω<sub>o</sub> dt</i> &lt; 2</td></tr>
+<tr><td>位置 / 速率环</td><td class="c"><i>s</i>² + 2<i>ζω<sub>c</sub>s</i> + <i>ω<sub>c</sub></i>²</td><td class="c"><i>ζ</i> &gt; 0，且 <i>ω<sub>c</sub>dt</i> ≪ 1</td></tr>
+<tr><td>ESO 补偿回路</td><td class="c">见下</td><td class="c">裕度 ~89°</td></tr>
+</table>
+</div>
+
+<p><b>补偿回路</b>（把 <i>z</i><sub>2</sub> 当作反馈路径）：</p>
+
+<div class="eq">
+<i>L</i>(<i>s</i>) =
+<span class="frac"><span class="num"><i>g</i></span><span class="den"><i>b</i><sub>0</sub></span></span> ·
+<span class="frac"><span class="num"><i>ω<sub>o</sub></i>²</span><span class="den">(<i>s</i> + <i>ω<sub>o</sub></i>)²</span></span> ·
+<span class="frac"><span class="num"><i>b</i><sub>0</sub></span><span class="den"><i>s</i></span></span>
+=
+<span class="frac"><span class="num"><i>g ω<sub>o</sub></i>²</span><span class="den"><i>s</i>(<i>s</i> + <i>ω<sub>o</sub></i>)²</span></span>
+</div>
+
+<ul>
+<li>极点：0, −<i>ω<sub>o</sub></i>, −<i>ω<sub>o</sub></i> → 相位从 −90° 走到 −270°</li>
+<li>增益穿越：<i>gω<sub>o</sub></i>² = <i>ω</i>(<i>ω</i>² + <i>ω<sub>o</sub></i>²)，取 <i>g</i>=0.8, <i>ω<sub>o</sub></i>=120 → <i>ω</i> ≈ 0.8 rad/s</li>
+<li>该处相位 −90° − 2·arctan(0.8/120) ≈ −90.8° ⟹ <b>相位裕度约 89°</b></li>
+</ul>
+
+<div class="ok">ESO 补偿本质上是一个<b>很稳的慢积分器</b>。</div>
+
+<h3>工程整定规则</h3>
+<div class="eq"><i>ω<sub>o</sub></i> ≈ (3 ~ 5) <i>ω<sub>c</sub></i></div>
+
+<div class="tw">
+<table>
+<tr><th>ω<sub>c</sub></th><th>推荐 ω<sub>o</sub></th></tr>
+<tr><td class="c">14 rad/s</td><td class="c">42 ~ 70</td></tr>
+<tr><td class="c">18 rad/s</td><td class="c">54 ~ 90</td></tr>
+</table>
+</div>
+
+<div class="warn">原来给的 120 / 18 = 6.7 倍偏高，配合 <code>eso_gain = 0.8</code> 容易在台架上出问题。</div>
+
+<!-- ============================================================ -->
+<h2 id="s9">9 &nbsp;代码 ↔ 公式 完全对照</h2>
+
+<div class="tw">
+<table>
+<tr><th>by_with_sy.c 里的行</th><th>公式</th></tr>
+<tr>
+<td><code>c-&gt;kp = wc*wc/b0</code></td>
+<td class="c"><i>k<sub>p</sub></i> = <i>ω<sub>c</sub></i>²/<i>b</i><sub>0</sub> &nbsp;(3.5)</td>
+</tr>
+<tr>
+<td><code>c-&gt;kd = 2*zeta*wc/b0</code></td>
+<td class="c"><i>k<sub>d</sub></i> = 2<i>ζω<sub>c</sub></i>/<i>b</i><sub>0</sub> &nbsp;(3.5)</td>
+</tr>
+<tr>
+<td><code>err = z1 - yr;</code></td>
+<td class="c">−(<i>y</i> − <i>z</i><sub>1</sub>)（取负号省一次减法）</td>
+</tr>
+<tr>
+<td><code>z1 += (z2 + b0*u_last - b1*err)*dt</code></td>
+<td class="c">d<i>z</i><sub>1</sub>/d<i>t</i> = <i>z</i><sub>2</sub> + <i>b</i><sub>0</sub><i>u</i> + <i>β</i><sub>1</sub>(<i>y</i>−<i>z</i><sub>1</sub>) &nbsp;(2.6)</td>
+</tr>
+<tr>
+<td><code>z2 += (-b2*err)*dt</code></td>
+<td class="c">d<i>z</i><sub>2</sub>/d<i>t</i> = <i>β</i><sub>2</sub>(<i>y</i>−<i>z</i><sub>1</sub>) &nbsp;(2.6)</td>
+</tr>
+<tr>
+<td><code>z2</code> 限幅 <code>±dlim</code></td>
+<td class="c">|d| ≤ CLIM·<i>b</i><sub>0</sub>/<i>g</i>（补偿不可能超过最大电流）</td>
+</tr>
+<tr>
+<td><code>wref_raw = (ref - ref_prev)/dt</code></td>
+<td class="c"><i>ω<sub>ref</sub></i> = d<i>θ</i>*/d<i>t</i> &nbsp;(5.4)</td>
+</tr>
+<tr>
+<td><code>integ += ki*e*dt</code></td>
+<td class="c"><i>u<sub>int</sub></i> = ∫ <i>k<sub>i</sub> e</i> d<i>t</i></td>
+</tr>
+<tr>
+<td><code>u = kp*e + kd*(wref-yr) + integ - z2/b0*g</code></td>
+<td class="c">(3.4) + (5.4) 主控制律</td>
+</tr>
+<tr>
+<td><code>u</code> 限幅 <code>±clim</code></td>
+<td class="c">|<i>u</i>| ≤ CLIM</td>
+</tr>
+<tr>
+<td><code>return u*out_turn</code></td>
+<td class="c"><i>t</i> = <i>u</i> · OUT_TURN（逻辑 → 物理）</td>
+</tr>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s10">10 &nbsp;一句话总结</h2>
+
+<div class="eq key" style="display:block;line-height:2.05;text-align:left;font-size:16.5px">
+<b>建模</b>：把负载方程换到相对坐标系，得到 d<i>ω<sub>s</sub></i>/d<i>t</i> = <i>b</i><sub>0</sub><i>u</i> + <i>d</i>，其中 <i>d</i> 里天然包含了大 yaw 的拖拽 −d<i>ω<sub>b</sub></i>/d<i>t</i>。<br>
+<b>估计</b>：用 ESO 把 <i>d</i> 实时估出来（<i>z</i><sub>2</sub>），一个带宽参数 <i>ω<sub>o</sub></i> 搞定。<br>
+<b>抵消</b>：<i>u</i> = (<i>u</i><sub>0</sub> − <i>z</i><sub>2</sub>)/<i>b</i><sub>0</sub>，抵消后系统变成 d<i>ω<sub>s</sub></i>/d<i>t</i> = <i>u</i><sub>0</sub>。<br>
+<b>控制</b>：指定 <i>ω<sub>c</sub></i>, <i>ζ</i>，反推 <i>k<sub>p</sub></i> = <i>ω<sub>c</sub></i>²/<i>b</i><sub>0</sub>、<i>k<sub>d</sub></i> = 2<i>ζω<sub>c</sub></i>/<i>b</i><sub>0</sub>。<br>
+<b>前馈</b>：再加 <i>k<sub>d</sub>ω<sub>ref</sub></i>，废掉 <i>k<sub>d</sub></i> 带来的"转速收费"。<br>
+<b>解耦</b>：因为 <i>d</i> 里含着 −d<i>ω<sub>b</sub></i>/d<i>t</i>，抵消它就等于解耦 —— 不需要额外做任何事。
+</div>
+
+<hr>
+<p class="sub" style="text-align:center;margin-top:1.5em">SPR 哨兵 · 小 yaw 控制器推导</p>
+
+</body>
+</html>

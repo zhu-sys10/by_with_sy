@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "J-Link: 烧录并调试",
+            "type": "cortex-debug",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/sentry/MDK-ARM",
+            "executable": "${workspaceFolder}/sentry/MDK-ARM/standard/sentry.axf",
+            "servertype": "jlink",
+            "device": "STM32F407IG",
+            "interface": "swd",
+            "serverpath": "D:/SPR/JLink_V896/JLinkGDBServerCL.exe",
+            "armToolchainPath": "D:/SPR/msys64/mingw64/bin",
+            "gdbPath": "D:/SPR/msys64/mingw64/bin/arm-none-eabi-gdb.exe",
+            "preLaunchTask": "Keil: 编译",
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none",
+            "breakAfterReset": false,
+            "rttConfig": {
+                "enabled": false,
+                "address": "auto",
+                "decoders": []
+            }
+        },
+        {
+            "name": "J-Link: 附加到正在运行的程序",
+            "type": "cortex-debug",
+            "request": "attach",
+            "cwd": "${workspaceFolder}/sentry/MDK-ARM",
+            "executable": "${workspaceFolder}/sentry/MDK-ARM/standard/sentry.axf",
+            "servertype": "jlink",
+            "device": "STM32F407IG",
+            "interface": "swd",
+            "serverpath": "D:/SPR/JLink_V896/JLinkGDBServerCL.exe",
+            "armToolchainPath": "D:/SPR/msys64/mingw64/bin",
+            "gdbPath": "D:/SPR/msys64/mingw64/bin/arm-none-eabi-gdb.exe",
+            "showDevDebugOutput": "none"
+        }
+    ]
+}

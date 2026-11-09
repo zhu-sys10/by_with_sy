@@ -1,0 +1,39 @@
+﻿# ---- Python 虚拟环境 ----
+.venv/
+__pycache__/
+*.pyc
+
+# ---- 论文资料（体积大，不入库）----
+_pdfs/
+
+# ---- AI / 编辑器工具缓存 ----
+.workbuddy/
+.lingma/
+sentry/.lingma/
+.vs/
+
+# ---- Keil MDK 构建产物 ----
+sentry/MDK-ARM/standard/
+sentry/MDK-ARM/RTE/
+sentry/MDK-ARM/Objects/
+sentry/MDK-ARM/Listings/
+*.o
+*.d
+*.crf
+*.axf
+*.hex
+*.bin
+*.map
+*.lst
+*.lnp
+*.dep
+*.iex
+*.sct
+*.scvd
+*.htm
+*.uvguix.*
+*.jdebug.user
+
+# ---- 系统 ----
+Thumbs.db
+Desktop.ini

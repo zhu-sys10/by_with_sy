@@ -1,0 +1,128 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Keil: 编译",
+            "detail": "增量编译（Ctrl+Shift+B）。底层调 tools/keil-build.ps1 -> UV4.exe  |  注意：本文件全部用 type=process，不要改成 shell，否则单引号会被外层包一层而报错",
+            "type": "process",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/tools/keil-build.ps1",
+                "-Mode", "build"
+            ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": { "kind": "build", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "shared", "clear": true, "focus": false },
+            "problemMatcher": [
+                {
+                    "owner": "cpp",
+                    "source": "armcc",
+                    "fileLocation": ["relative", "${workspaceFolder}/sentry/MDK-ARM"],
+                    "pattern": {
+                        "regexp": "^(.*)\\((\\d+)\\):\\s*(warning|error|fatal error)\\s*:\\s*(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "severity": 3,
+                        "message": 4
+                    }
+                },
+                {
+                    "owner": "cpp",
+                    "source": "armlink",
+                    "fileLocation": ["relative", "${workspaceFolder}/sentry/MDK-ARM"],
+                    "pattern": {
+                        "regexp": "^(.*\\.(?:axf|o)):\\s*(Error|Warning)\\s*:\\s*(\\S+):\\s*(.*)$",
+                        "file": 1,
+                        "severity": 2,
+                        "message": 4
+                    }
+                }
+            ]
+        },
+        {
+            "label": "Keil: 全量重编",
+            "detail": "UV4 -r，整个工程重编（改了 .h 或宏之后用）",
+            "type": "process",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/tools/keil-build.ps1",
+                "-Mode", "rebuild"
+            ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "build",
+            "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+            "problemMatcher": [
+                {
+                    "owner": "cpp",
+                    "source": "armcc",
+                    "fileLocation": ["relative", "${workspaceFolder}/sentry/MDK-ARM"],
+                    "pattern": {
+                        "regexp": "^(.*)\\((\\d+)\\):\\s*(warning|error|fatal error)\\s*:\\s*(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "severity": 3,
+                        "message": 4
+                    }
+                }
+            ]
+        },
+        {
+            "label": "Keil: 清理",
+            "detail": "UV4 -c，删掉中间产物",
+            "type": "process",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/tools/keil-build.ps1",
+                "-Mode", "clean"
+            ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "J-Link: 烧录 HEX",
+            "detail": "先编译，再用 J-Link Commander 烧录并复位运行（不进调试）",
+            "type": "process",
+            "command": "D:/SPR/JLink_V896/JLink.exe",
+            "args": ["-NoGui", "1", "-ExitOnError", "1", "-CommanderScript", "flash.jlink"],
+            "options": { "cwd": "${workspaceFolder}/sentry/MDK-ARM" },
+            "dependsOn": ["Keil: 编译"],
+            "presentation": { "reveal": "always", "panel": "shared", "clear": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "J-Link: RTT Viewer",
+            "detail": "实时看 printf（需要固件里含 RTT 代码，目前还没接）",
+            "type": "process",
+            "command": "D:/SPR/JLink_V896/JLinkRTTViewer.exe",
+            "options": { "cwd": "${workspaceFolder}/sentry/MDK-ARM" },
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        },
+        {
+            "label": "J-Link: J-Scope 波形",
+            "detail": "实时波形。选 HSS 模式 + 载入 standard/sentry.axf，就能直接勾全局变量",
+            "type": "process",
+            "command": "D:/SPR/JLink_V896/JScope.exe",
+            "options": { "cwd": "${workspaceFolder}/sentry/MDK-ARM" },
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Ozone: 打开工程（烧录+调试+波形）",
+            "detail": "用 SEGGER Ozone 打开 sentry.jdebug，不用手动配任何东西",
+            "type": "process",
+            "command": "C:/Program Files/SEGGER/Ozone/Ozone.exe",
+            "args": ["${workspaceFolder}/sentry.jdebug"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "presentation": { "reveal": "never", "panel": "shared" },
+            "problemMatcher": []
+        }
+    ]
+}

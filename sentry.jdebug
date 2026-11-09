@@ -1,0 +1,102 @@
+/*********************************************************************
+*                    SEGGER Ozone 工程文件 (.jdebug)                 *
+*  目标 : STM32F407IGHx   (J-Link, SWD, 4 MHz)                       *
+*  工程 : SPR 哨兵 sentry try_gimbal                                 *
+**********************************************************************
+*
+*  怎么用：直接双击本文件，用 Ozone 打开即可。
+*
+*  分工约定：
+*    ┌─────────────────────────┬──────────────────────────────┐
+*    │ 编译                    │ VS Code  Ctrl+Shift+B        │
+*    │ 烧录 / 调试 / 看波形    │ 本 Ozone 工程                │
+*    └─────────────────────────┴──────────────────────────────┘
+*  Ozone 不能编译 Keil 工程，所以改完代码还是要先在 VS Code 里编译。
+*
+*  ★ 波形在哪：Ozone V3.20 起 "Data Graph" 窗口被并入了 "Timeline"。
+*    菜单 View -> Timeline，在里面添加表达式（例如 g6020.ctrl.ws_f）就能画。
+*
+*  说明：本文件里用到的所有函数名都是从 Ozone 3.3.4 自己的二进制里核对过的
+*        （Project.SetDevice / SetHostIF / SetTargetIF / SetTIFSpeed /
+*          AddSvdFile / File.Open / Elf.GetBaseAddr / Target.ReadU32 /
+*          Target.SetReg / Util.Log）。
+*        故意没写 Debug.SetConnectMode / SetResetMode —— 那几个常量名在
+*        二进制里没找到，不敢乱写，用 Ozone 默认值即可（需要的话在界面上改）。
+*
+*********************************************************************/
+
+void OnProjectLoad (void) {
+  //
+  // ---- 目标与调试接口 ----
+  //
+  Project.SetDevice ("STM32F407IG");
+  Project.SetHostIF ("USB", "");
+  Project.SetTargetIF ("SWD");
+  Project.SetTIFSpeed ("4000");                 // 4 MHz；线长/不稳就降到 1000
+
+  //
+  // ---- 外设寄存器视图 ----
+  //  有了它 Ozone 里能直接看 CAN / TIM / GPIO 等寄存器，调底层非常有用
+  //
+  Project.AddSvdFile ("$(InstallDir)/Config/Peripherals/STM32F407IG.svd");
+
+  //
+  // ---- 源文件路径 ----
+  //  ARMCC 在 dwarf 里存的是相对路径（..\Task\by_with_sy.c），
+  //  并且带 DW_AT_comp_dir = <工程>\sentry\MDK-ARM，Ozone 能自动解析，
+  //  所以不需要 Project.AddPathSubstitute()。
+  //
+}
+
+void OnStartup (void) {
+  //
+  // ---- 载入可执行文件 ----
+  //  $(ProjectDir) = 本 .jdebug 文件所在的目录
+  //
+  File.Open ("$(ProjectDir)/sentry/MDK-ARM/standard/sentry.axf");
+}
+
+/*********************************************************************
+*  ★ 下面两个函数是为 Keil(ARMCC) 专门加的，别删。
+*
+*  原因：对 Keil / IAR 编译出来的 ELF，Ozone 默认用
+*        Elf.GetEntryPointPC() 取入口点，而它返回的是 C 运行库的入口
+*        （__main），不是 Reset_Handler。
+*        直接跳到 __main 会跳过 startup 里的 SystemInit() ——
+*        时钟不会配到 168 MHz，整个程序会以 16 MHz 的内置 RC 慢跑，
+*        所有跟时间有关的东西（CAN 波特率、osDelay、采样周期）全乱。
+*
+*  所以这里改成从向量表手动取：第 0 个字 = 初始 SP，第 1 个字 = 复位向量。
+*********************************************************************/
+
+void AfterTargetDownload (void) {
+  unsigned int SP;
+  unsigned int PC;
+  unsigned int VectorTableAddr;
+
+  VectorTableAddr = Elf.GetBaseAddr();
+
+  if (VectorTableAddr != 0xFFFFFFFF) {
+    SP = Target.ReadU32(VectorTableAddr);
+    Target.SetReg ("SP", SP);
+    PC = Target.ReadU32(VectorTableAddr + 4);   // 复位向量，而不是 Elf.GetEntryPointPC()
+    Target.SetReg ("PC", PC);
+  } else {
+    Util.Log ("Ozone project file error: failed to get program base");
+  }
+}
+
+void AfterTargetReset (void) {
+  unsigned int SP;
+  unsigned int PC;
+  unsigned int VectorTableAddr;
+
+  VectorTableAddr = Elf.GetBaseAddr();
+
+  if (VectorTableAddr != 0xFFFFFFFF) {
+    SP = Target.ReadU32(VectorTableAddr);
+    Target.SetReg ("SP", SP);
+    PC = Target.ReadU32(VectorTableAddr + 4);
+    Target.SetReg ("PC", PC);
+  }
+}

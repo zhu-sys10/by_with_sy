@@ -1,0 +1,37 @@
+{
+    "C_Cpp.errorSquiggles": "disabled",
+
+    // ===== Cortex-Debug 工具路径（关键，不配就找不到 J-Link / gdb）=====
+    "cortex-debug.JLinkGDBServerPath": "D:/SPR/JLink_V896/JLinkGDBServerCL.exe",
+    "cortex-debug.armToolchainPath": "D:/SPR/msys64/mingw64/bin",
+    "cortex-debug.gdbPath": "D:/SPR/msys64/mingw64/bin/arm-none-eabi-gdb.exe",
+
+    // ===== 代码风格（工程用 4 空格）=====
+    "[c]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": false
+    },
+    "[cpp]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": false
+    },
+    "files.trimTrailingWhitespace": false,
+    "files.eol": "\r\n",
+
+    // ===== 把编译产物藏起来，免得污染搜索 =====
+    "search.exclude": {
+        "**/MDK-ARM/standard/**": true,
+        "**/MDK-ARM/RTE/**": true,
+        "**/MDK-ARM/DebugConfig/**": true,
+        "**/build.log": true,
+        "**/Drivers/**": true,
+        "**/Middlewares/**": true
+    },
+    "files.watcherExclude": {
+        "**/MDK-ARM/standard/**": true,
+        "**/Drivers/**": true,
+        "**/Middlewares/**": true
+    }
+}
