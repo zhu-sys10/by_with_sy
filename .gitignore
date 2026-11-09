@@ -1,4 +1,4 @@
-﻿# ---- Python 虚拟环境 ----
+# ---- Python 虚拟环境 ----
 .venv/
 __pycache__/
 *.pyc
@@ -33,6 +33,7 @@ sentry/MDK-ARM/Listings/
 *.htm
 *.uvguix.*
 *.jdebug.user
+sentry/MDK-ARM/JLinkLog.txt
 
 # ---- 系统 ----
 Thumbs.db
