@@ -8,9 +8,9 @@
 
 #include "can.h"
 
-/* 量程，必须和调试助手一致 */
-#define DM_P_MIN  (-12.5f)
-#define DM_P_MAX  (12.5f)
+/* 量程，必须和调试助手一致。实测助手：PMAX=3.14159 / VMAX=30 / TMAX=10 */
+#define DM_P_MIN  (-3.1415927f)
+#define DM_P_MAX  (3.1415927f)
 #define DM_V_MIN  (-30.0f)
 #define DM_V_MAX  (30.0f)
 #define DM_T_MIN  (-10.0f)
@@ -20,12 +20,12 @@
 #define DM_KD_MIN (0.0f)
 #define DM_KD_MAX (5.0f)
 
-/* pos 反馈的锯齿周期：越 +12.5 跳到 -12.5，一格 25 rad，不是 2π */
+/* pos 反馈的锯齿周期：过 ±π 翻转，一格 2π */
 #define DM_P_SPAN (DM_P_MAX - DM_P_MIN)
 
-/* vel 字段实测偏小：真实速度 / 上报值 = 3.95（同编码器 pos 微分对比）
-   正常应为 1.0；换电机或改 V_MAX 后必须重测 */
-#define DM_V_SCALE (3.95f)
+/* vel 字段修正系数。实测 PMAX 填错导致之前的 3.95 是位置量程误差，
+   速度字段本身正常，保持 1.0 */
+#define DM_V_SCALE (1.0f)
 
 #define DM_CMD_ENABLE  (0xFCu)      /* 命令帧 = 7 字节 0xFF + 命令字 */
 #define DM_CMD_DISABLE (0xFDu)
@@ -47,7 +47,7 @@ typedef struct
     float   kp;                     /* 位置刚度 */
     float   kd;                     /* 阻尼 */
 
-    float   pos;                    /* rad，协议原始值，±12.5 处翻转 */
+    float   pos;                    /* rad，协议原始值，±π 处翻转 */
     float   pos_cont;               /* rad，按 25 rad 展开后的连续角 */
     float   pos_last;               /* rad，上一帧原始值，展开用 */
     float   vel;                    /* rad/s */

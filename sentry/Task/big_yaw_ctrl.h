@@ -9,7 +9,7 @@
 #include "dm_motor.h"
 
 /* 先用估值；测完 J 后改 BIG_YAW_J */
-#define BIG_YAW_J          (0.04f)   /* kg·m²，电机侧等效惯量 */
+#define BIG_YAW_J          (0.045f)   /* kg·m²，电机侧等效惯量 */
 #define BIG_YAW_WC         (8.0f)   /* 闭环带宽 rad/s */
 #define BIG_YAW_ZETA       (0.45f)    /* 阻尼比 */
 #define BIG_YAW_WLP        (10.0f)   /* 速度反馈低通 Hz */

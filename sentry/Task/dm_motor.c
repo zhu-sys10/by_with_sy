@@ -128,7 +128,7 @@ uint8_t dm_motor_decode(dm_motor_t *motor, uint32_t std_id, const uint8_t *data)
 
     pos_raw = dm_uint_to_float((int32_t)p_int, DM_P_MIN, DM_P_MAX, 16);
 
-    /* 第一帧直接对齐；之后跨过 ±12.5 翻转点时补/减一格 25 rad */
+    /* 第一帧直接对齐；之后跨过 ±π 翻转点时补/减一格 2π */
     if (motor->online == 0)
     {
         motor->pos_cont = pos_raw;
@@ -136,11 +136,11 @@ uint8_t dm_motor_decode(dm_motor_t *motor, uint32_t std_id, const uint8_t *data)
     else
     {
         dpos = pos_raw - motor->pos_last;
-        if (dpos > DM_P_MAX)        /* 越过 +12.5，翻到了 -12.5 */
+        if (dpos > DM_P_MAX)        /* 越过 +π，翻到了 -π */
         {
             motor->pos_cont -= DM_P_SPAN;
         }
-        else if (dpos < DM_P_MIN)   /* 越过 -12.5，翻到了 +12.5 */
+        else if (dpos < DM_P_MIN)   /* 越过 -π，翻到了 +π */
         {
             motor->pos_cont += DM_P_SPAN;
         }

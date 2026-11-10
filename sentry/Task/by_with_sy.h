@@ -12,18 +12,16 @@
 #define DM_4310_CAN_ID    (0x05u)   /* 大 yaw 控制帧 ID */
 #define DM_4310_MASTER_ID (0x55u)   /* 大 yaw 反馈帧 ID */
 
-#define YAW_BIG_MAX_RAD   (3.1415927f)  /* 大 yaw 行程 ±2π */
+#define YAW_BIG_MAX_RAD   (3.1415927f)  /* 大 yaw 行程 ±180°（电机反馈量程 ±π） */
 #define YAW_SMALL_MAX_RAD (1.05f)       /* 小 yaw 行程 ±60° */
 
 /* 大 yaw 传动系数：yaw 轴转角 = 电机输出角 × 本值。
-   直驱填 1.0；若电机转 180° 而轴只转 90°，说明 2:1 减速，填 0.5。
-   改完必须手转轴验证：命令 90°，轴就该转 90°。 */
-#define YAW_BIG_RATIO     (0.25f)
+   手转 90° 实测：编码器 1.571 rad ↔ 世界角 90°，直驱填 1.0。 */
+#define YAW_BIG_RATIO     (1.0f)
 
-/* 大 yaw 机械零位对应的 dm_4310.pos。
-   手动摆到零位，在 Ozone 读 dm_4310.pos，把 0.0f 换成读到的值。
-   若已在达妙上位机把该位置设为零点并保存，填 0.0f。 */
-#define BIG_START_FIXED   (-5.93f)
+/* 大 yaw 机械零位对应的 dm_4310.pos（rad）。
+   旧值 -5.93 是 PMAX 填错 12.5 时的读数，× π/12.5 = -1.49。 */
+#define BIG_START_FIXED   (-1.49f)
 
 extern dm_motor_t    dm_4310;
 extern gimbal_6020_t g6020;

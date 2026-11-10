@@ -55,7 +55,7 @@ volatile float big_yaw_tff     = 0.0f;   /* 大 yaw 补偿力矩 N·m，只读 *
 volatile uint8_t big_yaw_free  = 0;      /* 1 = 大 yaw 零力矩，手转标定用 */
 volatile float yaw_big_vel     = 0.0f;   /* 由 pos_cont 差分估计的电机角速度 rad/s，只读 */
 
-/* 电机自带 vel 字段噪声 std ≈0.7 rad/s（实测），改用位置差分：窗口 10 ms 时噪声 ≈0.05 */
+/* 电机自带 vel 噪声大，改用位置差分：窗口 10 ms 时量化噪声 ≈0.014 rad/s */
 static float   s_pos_hist[YAW_BIG_VEL_WIN];
 static uint8_t s_pos_idx;
 static uint8_t s_vel_cnt;
